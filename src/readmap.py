@@ -1,6 +1,9 @@
 import argparse
 import sys
 import pickle
+import fasta, fastq
+import os
+import re
 
 class BWTMatcher:
     def __init__(self, f, rank_table, firstIndexList, alphadic):
@@ -52,6 +55,7 @@ def main():
         genomes = fasta.fasta_parse(args.genome)
         genomes_to_file(args.genome.name, genomes)
     else:
+        k = args.d
         # here we need the optional argument reads
         if args.reads is None:
             argparser.print_help()
@@ -78,7 +82,7 @@ def main():
                 length = len(r[1])
                 if length == 0:
                     continue
-                matches = searchPattern(r[1], bwtList[i])
+                matches = searchPattern(r[1], bwtList[i], k)
                 for m in matches:
                     out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m+1, length, r[1]))
 
@@ -179,21 +183,73 @@ def getFirstIndexList(x, f, alphadic):
 def getrank(alphadic, index, c, rank_table):
     return rank_table[index][alphadic.get(c)]
 
-def searchPattern(p, bwtMatcher):
+def get_d_table(p, bwtMatcher):
+    d_table = [0 * len(p)]
+    edits = 0
+
+    left, right = 0, len(bwtMatcher.f)
+    for i, c in enumerate(reversed(p)):
+        left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
+        right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+        if left >= right:
+            edits += 1
+            d_table[i] = edits
+            left, right = 0, len(bwtMatcher.f)
+        else:
+            d_table[i] = edits
+    
+    return d_table
+
+class EditNode:
+    def __init__(self, index, edits, p_prime, left, right):
+        self.index = index
+        self.edits = edits
+        self.p_prime = p_prime
+        self.left = left
+        self.right = right
+
+def searchPattern(p, bwtMatcher, k):
     if p == "":
         return
     
-    left, right = 0, len(bwtMatcher.f)
-    for a in reversed(p):
-        if a not in bwtMatcher.alphadic:
-            return
-        left = bwtMatcher.firstIndexList[a] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(a)]
-        right = bwtMatcher.firstIndexList[a] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(a)]
-        if left >= right: return  # no matches
+    d_table = get_d_table(p, bwtMatcher)
 
-    # Report the matches
-    for i in range(left, right):
-        yield bwtMatcher.f[i] 
+    # if k < d_table[len(p)-1]: return
+
+    # We need index, number edits, p', left, right
+    stack = [EditNode(len(p)-1, k, "", 0, len(bwtMatcher.f))]
+
+    #TODO: Check when do we need to build the CIGAR
+    while stack:
+        node = stack.pop()
+        if node.edits < 0 or node.edits < d_table[len(d_table)-node.index]: # TODO: Check conditions
+            continue
+        if node.index < 0:
+            report
+
+        # Deletion
+        stack.append(EditNode(node.index-1, k-1, node.p_prime, node.left, node.right))
+
+        # Addition
+        for c in bwtMatcher.alphadic:
+            if c == p[node.index]:
+                stack.append(EditNode(node.index-1, k-1, node.p_prime+p[node.index], node.left, node.right))
+            else:
+                stack.append(EditNode(node.index, k-1, node.p_prime+p[node.index], node.left, node.right))
+        # Match/Substitution for each char
+        for c in bwtMatcher.alphadic:
+            left = node.left, right = node.right
+            left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
+            right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+            
+            if left >= right:
+                # Substitution
+                left = 0
+                right = len(bwtMatcher.f)
+                stack.append(EditNode(node.index-1, k-1, node.p_prime+=c, left, right))
+            else:
+                # Matching
+                stack.append(EditNode(node.index-1, k, node.p_prime+c, left, right))
 
 if __name__ == '__main__':
     main()
