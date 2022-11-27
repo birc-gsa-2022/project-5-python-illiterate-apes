@@ -222,34 +222,37 @@ def searchPattern(p, bwtMatcher, k):
     #TODO: Check when do we need to build the CIGAR
     while stack:
         node = stack.pop()
-        if node.edits < 0 or node.edits < d_table[len(d_table)-node.index]: # TODO: Check conditions
+        if node.edits < d_table[len(d_table)-node.index]: # TODO: Check conditions
             continue
         if node.index < 0:
-            report
+            print("match")
+            continue
 
         # Deletion
         stack.append(EditNode(node.index-1, k-1, node.p_prime, node.left, node.right))
 
         # Addition
         for c in bwtMatcher.alphadic:
-            if c == p[node.index]:
-                stack.append(EditNode(node.index-1, k-1, node.p_prime+p[node.index], node.left, node.right))
-            else:
-                stack.append(EditNode(node.index, k-1, node.p_prime+p[node.index], node.left, node.right))
+            left = node.left, right = node.right
+            left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
+            right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+
+            if right < left:
+                stack.append(EditNode(node.index, k-1, node.p_prime+c, left, right))
+
         # Match/Substitution for each char
         for c in bwtMatcher.alphadic:
             left = node.left, right = node.right
             left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
             right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
             
-            if left >= right:
-                # Substitution
-                left = 0
-                right = len(bwtMatcher.f)
-                stack.append(EditNode(node.index-1, k-1, node.p_prime+=c, left, right))
-            else:
-                # Matching
-                stack.append(EditNode(node.index-1, k, node.p_prime+c, left, right))
+            if right < left:
+                if c == p[len(p)-node.index]:
+                    # Matching
+                    stack.append(EditNode(node.index-1, k, node.p_prime+c, left, right))
+                else:
+                    # Substitution
+                    stack.append(EditNode(node.index-1, k-1, node.p_prime+c, left, right))
 
 if __name__ == '__main__':
     main()
