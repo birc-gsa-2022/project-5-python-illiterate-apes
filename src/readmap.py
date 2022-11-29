@@ -4,6 +4,7 @@ import pickle
 import fasta, fastq
 import os
 import re
+from collections import defaultdict
 
 class BWTMatcher:
     def __init__(self, f, rank_table, firstIndexList, alphadic):
@@ -162,7 +163,6 @@ def build_rank_table(x, alphadic, bwt):
 
         index = alphadic.get(c)
         table[i][index] += 1
-
     return table
 
 def getFirstIndexList(x, f, alphadic):
@@ -184,13 +184,12 @@ def getrank(alphadic, index, c, rank_table):
     return rank_table[index][alphadic.get(c)]
 
 def get_d_table(p, bwtMatcher):
-    d_table = [0 * len(p)]
+    d_table = [0 for _ in range(len(p))]
     edits = 0
 
     left, right = 0, len(bwtMatcher.f)
     for i, c in enumerate(reversed(p)):
-        left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
-        right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+        left, right = fm_match(bwtMatcher, left, right, c)
         if left >= right:
             edits += 1
             d_table[i] = edits
@@ -201,12 +200,17 @@ def get_d_table(p, bwtMatcher):
     return d_table
 
 class EditNode:
-    def __init__(self, index, edits, p_prime, left, right):
+    def __init__(self, index, edits, cigar, left, right):
         self.index = index
         self.edits = edits
-        self.p_prime = p_prime
+        self.cigar = cigar
         self.left = left
         self.right = right
+
+def fm_match(bwtMatcher, left, right, c):
+    left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
+    right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+    return left, right
 
 def searchPattern(p, bwtMatcher, k):
     if p == "":
@@ -216,43 +220,69 @@ def searchPattern(p, bwtMatcher, k):
 
     # if k < d_table[len(p)-1]: return
 
-    # We need index, number edits, p', left, right
+    # We need index, number edits, cigar, left, right
     stack = [EditNode(len(p)-1, k, "", 0, len(bwtMatcher.f))]
 
-    #TODO: Check when do we need to build the CIGAR
+    sols = []
     while stack:
         node = stack.pop()
-        if node.edits < d_table[len(d_table)-node.index]: # TODO: Check conditions
+        print(node.index, node.edits, node.cigar, node.left, node.right)
+
+        if node.edits < 0:
             continue
         if node.index < 0:
-            print("match")
+            print("Happy")
+            sols.append(node.cigar)
             continue
 
+        # if node.edits < d_table[len(d_table)-node.index-1]:
+        #     continue
+
+
         # Deletion
-        stack.append(EditNode(node.index-1, k-1, node.p_prime, node.left, node.right))
+        # print("add D")
+        # stack.append(EditNode(node.index-1, node.edits-1, node.cigar+'D', node.left, node.right))
 
         # Addition
         for c in bwtMatcher.alphadic:
-            left = node.left, right = node.right
-            left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
-            right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+            if c== "$":
+                continue
 
-            if right < left:
-                stack.append(EditNode(node.index, k-1, node.p_prime+c, left, right))
+            left = node.left
+            right = node.right
+            left, right = fm_match(bwtMatcher, left, right, c)
+
+            if left < right:
+                # print("add A")
+                continue
+                stack.append(EditNode(node.index, node.edits-1, node.cigar+'A', left, right))
 
         # Match/Substitution for each char
         for c in bwtMatcher.alphadic:
-            left = node.left, right = node.right
-            left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
-            right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
+            if c== "$":
+                continue
+
+            left = node.left
+            right = node.right
+            left, right = fm_match(bwtMatcher, left, right, c)
             
-            if right < left:
-                if c == p[len(p)-node.index]:
+            if left < right:
+                if c == p[len(p)-node.index-1]:
                     # Matching
-                    stack.append(EditNode(node.index-1, k, node.p_prime+c, left, right))
+                    # print("add M")
+                    print(len(p)-node.index-1, c)
+                    stack.append(EditNode(node.index-1, node.edits, node.cigar+'M', left, right))
                 else:
+                    continue
                     # Substitution
-                    stack.append(EditNode(node.index-1, k-1, node.p_prime+c, left, right))
+                    print("add S")
+                    stack.append(EditNode(node.index-1, node.edits-1, node.cigar+'S', left, right))
+        
+    return sols
 
 if __name__ == '__main__':
-    main()
+    bwt = preprocess_genomes([[0, 'abbaab']])[0]
+    matches = searchPattern('ab', bwt, 0)
+    for m in matches:
+        print(m)
+    #main()
