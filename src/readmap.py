@@ -188,7 +188,7 @@ def get_d_table(p, bwtMatcher):
     edits = 0
 
     left, right = 0, len(bwtMatcher.f)
-    for i, c in enumerate(reversed(p)):
+    for i, c in enumerate(p):
         left, right = fm_match(bwtMatcher, left, right, c)
         if left >= right:
             edits += 1
@@ -223,7 +223,7 @@ def searchPattern(p, bwtMatcher, k):
     
     d_table = get_d_table(p, bwtMatcher)
 
-    # if k < d_table[len(p)-1]: return
+    if k < d_table[len(p)-1]: return
 
     # We need index, number edits, cigar, left, right
     stack = [EditNode(len(p)-1, k, "", 0, len(bwtMatcher.f))]
@@ -241,8 +241,8 @@ def searchPattern(p, bwtMatcher, k):
                 sols.append([bwtMatcher.f[i], node.cigar])
             continue
 
-        # if node.edits < d_table[len(d_table)-node.index-1]:
-        #     continue
+        if node.edits < d_table[node.index]:
+            continue
 
         # Deletion
         newNode = EditNode(node.index-1, node.edits-1, 'D'+node.cigar, node.left, node.right)
@@ -277,8 +277,8 @@ def searchPattern(p, bwtMatcher, k):
     return sols
 
 if __name__ == '__main__':
-    bwt = preprocess_genomes([[0, 'isi']])[0]
-    matches = searchPattern('ippi', bwt, 2)
+    bwt = preprocess_genomes([[0, 'mississippi']])[0]
+    matches = searchPattern('isi', bwt, 1)
     for m in matches:
         print(m)
     #main()
