@@ -207,7 +207,12 @@ class EditNode:
         self.left = left
         self.right = right
 
+    def __str__(self):
+        return str(self.index) + ' ' +  str(self.edits) + ' ' + self.cigar + ' ' + str(self.left) + ' ' + str(self.right)
+
 def fm_match(bwtMatcher, left, right, c):
+    if c == "$" or c not in bwtMatcher.alphadic:
+        return left, left
     left = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[left][bwtMatcher.alphadic.get(c)]
     right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
     return left, right
@@ -226,63 +231,54 @@ def searchPattern(p, bwtMatcher, k):
     sols = []
     while stack:
         node = stack.pop()
-        print(node.index, node.edits, node.cigar, node.left, node.right)
+        print("Processing", node)
 
         if node.edits < 0:
             continue
         if node.index < 0:
             print("Happy")
-            sols.append(node.cigar)
+            for i in range(node.left, node.right):
+                sols.append([bwtMatcher.f[i], node.cigar])
             continue
 
         # if node.edits < d_table[len(d_table)-node.index-1]:
         #     continue
 
-
         # Deletion
-        # print("add D")
-        # stack.append(EditNode(node.index-1, node.edits-1, node.cigar+'D', node.left, node.right))
+        newNode = EditNode(node.index-1, node.edits-1, 'D'+node.cigar, node.left, node.right)
+        print("add D:", newNode)
+        stack.append(newNode)
 
         # Addition
         for c in bwtMatcher.alphadic:
-            if c== "$":
-                continue
-
-            left = node.left
-            right = node.right
-            left, right = fm_match(bwtMatcher, left, right, c)
+            left, right = fm_match(bwtMatcher, node.left, node.right, c)
 
             if left < right:
-                # print("add A")
-                continue
-                stack.append(EditNode(node.index, node.edits-1, node.cigar+'A', left, right))
+                newNode = EditNode(node.index, node.edits-1, 'A'+node.cigar, left, right)
+                print("add A with", c, ":", newNode)
+                stack.append(newNode)
 
         # Match/Substitution for each char
         for c in bwtMatcher.alphadic:
-            if c== "$":
-                continue
-
-            left = node.left
-            right = node.right
-            left, right = fm_match(bwtMatcher, left, right, c)
+            left, right = fm_match(bwtMatcher, node.left, node.right, c)
             
             if left < right:
-                if c == p[len(p)-node.index-1]:
+                if c == p[node.index]:
                     # Matching
-                    # print("add M")
-                    print(len(p)-node.index-1, c)
-                    stack.append(EditNode(node.index-1, node.edits, node.cigar+'M', left, right))
+                    newNode = EditNode(node.index-1, node.edits, 'M'+node.cigar, left, right)
+                    print("add M with", c, ":", newNode)
+                    stack.append(newNode)
                 else:
-                    continue
                     # Substitution
-                    print("add S")
-                    stack.append(EditNode(node.index-1, node.edits-1, node.cigar+'S', left, right))
+                    newNode = EditNode(node.index-1, node.edits-1, 'S'+node.cigar, left, right)
+                    print("add S with", c, ":", newNode)
+                    stack.append(newNode)
         
     return sols
 
 if __name__ == '__main__':
-    bwt = preprocess_genomes([[0, 'abbaab']])[0]
-    matches = searchPattern('ab', bwt, 0)
+    bwt = preprocess_genomes([[0, 'isi']])[0]
+    matches = searchPattern('ippi', bwt, 2)
     for m in matches:
         print(m)
     #main()
