@@ -70,7 +70,7 @@ def main():
             datFileStream = open(datFile, "rb")
             bwtList = pickle.load(datFileStream)
         else:
-            bwtList = genomes_to_file(args.genome, genomes)
+            bwtList = genomes_to_file(args.genome.name, genomes)
         
         reads = fastq.fastq_parser(args.reads)
 
@@ -85,14 +85,33 @@ def main():
                     continue
                 matches = searchPattern(r[1], bwtList[i], k)
                 for m in matches:
-                    out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m+1, length, r[1]))
+                    out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m[0], m[1], r[1]))
 
         for t in sorted(out, key=lambda x: (x[0], x[1], x[2])):
-            print(f"{t[0][0]}{t[0][1]}\t{t[1][0]}{t[1][1]}\t{t[2]}\t{t[3]}M\t{t[4]}")
+            print(f"{t[0][0]}{t[0][1]}\t{t[1][0]}{t[1][1]}\t{t[2]}\t{t[3]}\t{t[4]}")
 
 def getTrailingNumber(s):
     m = re.search(r'\d+$', s)
     return (s[:m.start()], int(s[m.start():]))
+
+def compactCigar(u_cigar):
+    c_cigar = ""
+    prevChar = ""
+    counter = 0
+    for c in u_cigar:
+        if c==prevChar:
+            counter += 1
+        else:
+            if counter > 0:
+                c_cigar += str(counter)+prevChar
+            counter = 1
+        
+        prevChar = c
+    
+    if counter > 0:
+        c_cigar += str(counter)+prevChar
+
+    return c_cigar
 
 def genomes_to_file(filename, genomes):
     bwtList = preprocess_genomes(genomes)
@@ -231,14 +250,13 @@ def searchPattern(p, bwtMatcher, k):
     sols = []
     while stack:
         node = stack.pop()
-        print("Processing", node)
 
         if node.edits < 0:
             continue
         if node.index < 0:
-            print("Happy")
             for i in range(node.left, node.right):
-                sols.append([bwtMatcher.f[i]+1, node.cigar])
+                compactedCigar = compactCigar(node.cigar)
+                yield [bwtMatcher.f[i]+1, compactedCigar]
             continue
 
         if node.edits < d_table[node.index]:
@@ -246,7 +264,6 @@ def searchPattern(p, bwtMatcher, k):
 
         # Insertion
         newNode = EditNode(node.index-1, node.edits-1, 'I'+node.cigar, node.left, node.right)
-        print("add D:", newNode)
         stack.append(newNode)
 
         # Deletion
@@ -255,7 +272,6 @@ def searchPattern(p, bwtMatcher, k):
 
             if left < right:
                 newNode = EditNode(node.index, node.edits-1, 'D'+node.cigar, left, right)
-                print("add A with", c, ":", newNode)
                 stack.append(newNode)
 
         # Match/Substitution for each char
@@ -266,19 +282,13 @@ def searchPattern(p, bwtMatcher, k):
                 if c == p[node.index]:
                     # Matching
                     newNode = EditNode(node.index-1, node.edits, 'M'+node.cigar, left, right)
-                    print("add M with", c, ":", newNode)
                     stack.append(newNode)
                 else:
                     # Substitution
                     newNode = EditNode(node.index-1, node.edits-1, 'M'+node.cigar, left, right)
-                    print("add S with", c, ":", newNode)
                     stack.append(newNode)
         
     return sols
 
 if __name__ == '__main__':
-    bwt = preprocess_genomes([[0, 'mississippi']])[0]
-    matches = searchPattern('isi', bwt, 1)
-    for m in matches:
-        print(m)
-    #main()
+    main()
