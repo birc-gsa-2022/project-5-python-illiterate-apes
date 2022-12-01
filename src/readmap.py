@@ -38,15 +38,11 @@ def main():
     )
     args = argparser.parse_args()
 
-    if args.p:
-        print(f"Preprocess {args.genome}")
-    else:
+    if not(args.p):
         # here we need the optional argument reads
         if args.reads is None:
             argparser.print_help()
             sys.exit(1)
-        print(
-            f"Search {args.genome} for {args.reads} within distance {args.d}")
         
     if args.genome is None:
         argparser.print_help()
