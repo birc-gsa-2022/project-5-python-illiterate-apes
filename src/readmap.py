@@ -240,7 +240,7 @@ def searchPattern(p, bwtMatcher, k):
     d_table = get_d_table(p, bwtMatcher)
    
 
-    if k < d_table[len(p)-1]: return
+    #if k < d_table[len(p)-1]: return
 
     # We need index, number edits, cigar, left, right
     stack = [EditNode(len(p)-1, k, "", 0, len(bwtMatcher.f))]
@@ -257,8 +257,8 @@ def searchPattern(p, bwtMatcher, k):
                 yield [bwtMatcher.f[i]+1, compactedCigar]
             continue
 
-        if node.edits < d_table[node.index]:
-            continue
+        #if node.edits < d_table[node.index]:
+        #    continue
 
         # Insertion
         newNode = EditNode(node.index-1, node.edits-1, 'I'+node.cigar, node.left, node.right)
