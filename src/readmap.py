@@ -263,12 +263,13 @@ def searchPattern(p, bwtMatcher, k):
         stack.append(newNode)
 
         # Deletion
-        for c in bwtMatcher.alphadic:
-            left, right = fm_match(bwtMatcher, node.left, node.right, c)
+        if node.cigar != "":
+            for c in bwtMatcher.alphadic:
+                left, right = fm_match(bwtMatcher, node.left, node.right, c)
 
-            if left < right:
-                newNode = EditNode(node.index, node.edits-1, 'D'+node.cigar, left, right)
-                stack.append(newNode)
+                if left < right:
+                    newNode = EditNode(node.index, node.edits-1, 'D'+node.cigar, left, right)
+                    stack.append(newNode)
 
         # Match/Substitution for each char
         for c in bwtMatcher.alphadic:
