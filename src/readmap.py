@@ -79,6 +79,7 @@ def main():
                 length = len(r[1])
                 if length == 0:
                     continue
+
                 matches = searchPattern(r[1], bwtList[i], k)
                 for m in matches:
                     out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m[0], m[1], r[1]))
@@ -203,7 +204,7 @@ def get_d_table(p, bwtMatcher):
     edits = 0
 
     left, right = 0, len(bwtMatcher.f)
-    for i, c in enumerate(p):
+    for i, c in enumerate(reversed(p)):
         left, right = fm_match(bwtMatcher, left, right, c)
         if left >= right:
             edits += 1
@@ -237,6 +238,7 @@ def searchPattern(p, bwtMatcher, k):
         return
     
     d_table = get_d_table(p, bwtMatcher)
+   
 
     if k < d_table[len(p)-1]: return
 
