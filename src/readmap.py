@@ -87,7 +87,7 @@ def main():
                 for m in matches:
                     out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m[0], m[1], r[1]))
 
-        for t in sorted(out, key=lambda x: (x[0], x[1], x[2])):
+        for t in out:
             print(f"{t[0][0]}{t[0][1]}\t{t[1][0]}{t[1][1]}\t{t[2]}\t{t[3]}\t{t[4]}")
 
 def getTrailingNumber(s):
