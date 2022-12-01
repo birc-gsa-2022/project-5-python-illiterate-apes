@@ -238,23 +238,23 @@ def searchPattern(p, bwtMatcher, k):
         if node.index < 0:
             print("Happy")
             for i in range(node.left, node.right):
-                sols.append([bwtMatcher.f[i], node.cigar])
+                sols.append([bwtMatcher.f[i]+1, node.cigar])
             continue
 
         if node.edits < d_table[node.index]:
             continue
 
-        # Deletion
-        newNode = EditNode(node.index-1, node.edits-1, 'D'+node.cigar, node.left, node.right)
+        # Insertion
+        newNode = EditNode(node.index-1, node.edits-1, 'I'+node.cigar, node.left, node.right)
         print("add D:", newNode)
         stack.append(newNode)
 
-        # Addition
+        # Deletion
         for c in bwtMatcher.alphadic:
             left, right = fm_match(bwtMatcher, node.left, node.right, c)
 
             if left < right:
-                newNode = EditNode(node.index, node.edits-1, 'A'+node.cigar, left, right)
+                newNode = EditNode(node.index, node.edits-1, 'D'+node.cigar, left, right)
                 print("add A with", c, ":", newNode)
                 stack.append(newNode)
 
@@ -270,7 +270,7 @@ def searchPattern(p, bwtMatcher, k):
                     stack.append(newNode)
                 else:
                     # Substitution
-                    newNode = EditNode(node.index-1, node.edits-1, 'S'+node.cigar, left, right)
+                    newNode = EditNode(node.index-1, node.edits-1, 'M'+node.cigar, left, right)
                     print("add S with", c, ":", newNode)
                     stack.append(newNode)
         
