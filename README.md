@@ -114,6 +114,8 @@ While implementing the algorithm we have understood how conceptually each of the
 
 ## Problems encountered if any
 
+There has been an issue related with the d-table, which happened to be that the rotation table used had to be from the reversed genome instead of the original one. Besides that, multiple fixes had to be fixed related with the exploring of the tree of possibilities.
+
 ## Validation
 
 In this project, the validation has been done in an incremental manner, trying short genomes and patterns with a maximum distance of 1 in order to do proper debugging. The test has been incremented up until using genomes of 20,000 characters and patterns of 1,000 using the given generator, besides the test run automatically in Github after each commit.
