@@ -104,17 +104,38 @@ Once you have implemented the `readmap` program (and tested it to the best of yo
 
 ## Algorithm
 
-*Which algorithm did you use for read mapping?*
+Since the object of this project is to do approximate matching and not exact matching, the solution proposed has necessarily to be different. This algorithm explores the tree of different paths to solution by applying the basic 3 operations: insertion, deletion and substitution, where each operation cost 1 units of edits to make. If the character from the genome and pattern matches the cost is 0. The recursion stops when there has been more edits than the defined limit or when we have found a solution. At each iteration, we apply FM-indexing over the genome using the reversed pattern.
+
+Moreover, and in order to prune the tree, a D-table has been introduced, which calculates an optimistic function of minimum cost necessary to find a solution from each character (from right to left). If at any point there are less edits available that the number indicated by the D-table, we can discard that branch of possibilities, since it is not possible to have a solution there.
 
 ## Insights you may have had while implementing the algorithm
 
+While implementing the algorithm we have understood how conceptually each of the basic operations work at the implementation level, and we have been able to deepen our knowledge onto FM-indexing while studying special cases in the debugging stage.
+
 ## Problems encountered if any
+
+There has been an issue related with the d-table, which happened to be that the rotation table used had to be from the reversed genome instead of the original one. Besides that, multiple fixes had to be fixed related with the exploring of the tree of possibilities.
 
 ## Validation
 
-*How did you validate that the algorithm works?*
+In this project, the validation has been done in an incremental manner, trying short genomes and patterns with a maximum distance of 1 in order to do proper debugging. The test has been incremented up until using genomes of 20,000 characters and patterns of 1,000 using the given generator, besides the test run automatically in Github after each commit.
 
 ## Running time
 
-*List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
+For the suffix array construction runtime refer to the previous project (https://github.com/birc-gsa-2022/project-3-python-illiterate-apes) readme.
+For the construction of the BWT, rank_table and firstIndexList refer to the previous project (https://github.com/birc-gsa-2022/project-4-python-illiterate-apes) readme.
+
+Approximate matching with fm-index and D-Table
+
+For both plots, a limited size of patterns and strings had to be used because of limitations of the machine the tests were run on.
+
+With varying pattern length
+![](figs/pattern.png)
+
+With increasing pattern length, the runtime seems to increase faster at first and then slow down, this might be due to bigger patterns having less matches as both reads and patterns were generated randomly.
+
+With varying string length
+![](figs/string.png)
+
+With increasing string length, the runtime seems to increase linearly(?), although testing with larger strings would help verify this.
 
