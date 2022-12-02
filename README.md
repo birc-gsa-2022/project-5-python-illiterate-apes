@@ -116,7 +116,7 @@ While implementing the algorithm we have understood how conceptually each of the
 
 ## Validation
 
-*How did you validate that the algorithm works?*
+In this project, the validation has been done in an incremental manner, trying short genomes and patterns with a maximum distance of 1 in order to do proper debugging. The test has been incremented up until using genomes of 20,000 characters and patterns of 1,000 using the given generator, besides the test run automatically in Github after each commit.
 
 ## Running time
 
