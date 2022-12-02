@@ -120,5 +120,13 @@ While implementing the algorithm we have understood how conceptually each of the
 
 ## Running time
 
-*List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
+For the suffix array construction runtime refer to the previous project (https://github.com/birc-gsa-2022/project-3-python-illiterate-apes) readme.
+For the construction of the BWT, rank_table and firstIndexList refer to the previous project (https://github.com/birc-gsa-2022/project-4-python-illiterate-apes) readme.
 
+Approximate matching with fm-index and D-Table
+
+With varying pattern length
+![](figs/pattern.png)
+
+With varying string length
+![](figs/string.png)
