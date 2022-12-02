@@ -79,8 +79,7 @@ def main():
                 length = len(r[1])
                 if length == 0:
                     continue
-
-                matches = searchPattern(r[1], bwtList[i], k)
+                matches = searchPattern(g[1], r[1], bwtList[i], k)
                 for m in matches:
                     out.append((getTrailingNumber(r[0]), getTrailingNumber(g[0]), m[0], m[1], r[1]))
 
@@ -116,19 +115,31 @@ def genomes_to_file(filename, genomes):
     pickle.dump(bwtList, outputFile)
     return bwtList
 
+def print_rotations(string, f):
+    for i in f:
+        s = ""
+        for j in range(0, len(string)):
+            s += string[(i+j)%len(string)]
+        print(s, end="\n")
+    
+def preprocess_genome(gen):
+    alphadic = {a: i for i, a in enumerate(set(gen))}
+
+    x = memoryview(gen.encode())
+    suf = getSuffixes(x)
+    f = radix_sort(suf)
+
+    bwt = [(i-1)%len(f) for i in f]
+    rank_table = build_rank_table(x, alphadic, bwt)
+    firstIndexList = getFirstIndexList(x, f, alphadic)
+    
+    return BWTMatcher(f, rank_table, firstIndexList, alphadic)
+
 def preprocess_genomes(genomes):
     bwtList = []
     for gen in genomes:
-        string = gen[1]+"$"
-        alphadic = {a: i for i, a in enumerate(set(string))}
-
-        x = memoryview(string.encode())
-        suf = getSuffixes(x)
-        f = radix_sort(suf)
-        bwt = [(i-1)%len(f) for i in f]
-        rank_table = build_rank_table(x, alphadic, bwt)
-        firstIndexList = getFirstIndexList(x, f, alphadic)
-        bwtList.append(BWTMatcher(f, rank_table, firstIndexList, alphadic))
+        string = gen[1] + "$"
+        bwtList.append(preprocess_genome(string))
     return bwtList
 
 def getSuffixes(x):
@@ -199,19 +210,18 @@ def getFirstIndexList(x, f, alphadic):
 def getrank(alphadic, index, c, rank_table):
     return rank_table[index][alphadic.get(c)]
 
-def get_d_table(p, bwtMatcher):
+def get_d_table(x, p):
+    bwtMatcher = preprocess_genome(x[::-1]+"$")
     d_table = [0 for _ in range(len(p))]
     edits = 0
 
     left, right = 0, len(bwtMatcher.f)
-    for i, c in enumerate(reversed(p)):
+    for i, c in enumerate(p):
         left, right = fm_match(bwtMatcher, left, right, c)
         if left >= right:
             edits += 1
-            d_table[i] = edits
             left, right = 0, len(bwtMatcher.f)
-        else:
-            d_table[i] = edits
+        d_table[i] = edits
     
     return d_table
 
@@ -233,14 +243,11 @@ def fm_match(bwtMatcher, left, right, c):
     right = bwtMatcher.firstIndexList[c] + bwtMatcher.rank_table[right][bwtMatcher.alphadic.get(c)]
     return left, right
 
-def searchPattern(p, bwtMatcher, k):
+def searchPattern(x, p, bwtMatcher, k):
     if p == "":
         return
     
-    d_table = get_d_table(p, bwtMatcher)
-   
-
-    #if k < d_table[len(p)-1]: return
+    d_table = get_d_table(x, p)
 
     # We need index, number edits, cigar, left, right
     stack = [EditNode(len(p)-1, k, "", 0, len(bwtMatcher.f))]
@@ -257,8 +264,8 @@ def searchPattern(p, bwtMatcher, k):
                 yield [bwtMatcher.f[i]+1, compactedCigar]
             continue
 
-        #if node.edits < d_table[node.index]:
-        #    continue
+        if node.edits < d_table[node.index]:
+            continue
 
         # Insertion
         newNode = EditNode(node.index-1, node.edits-1, 'I'+node.cigar, node.left, node.right)
