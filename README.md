@@ -127,8 +127,15 @@ For the construction of the BWT, rank_table and firstIndexList refer to the prev
 
 Approximate matching with fm-index and D-Table
 
+For both plots, a limited size of patterns and strings had to be used because of limitations of the machine the tests were run on.
+
 With varying pattern length
 ![](figs/pattern.png)
 
+With increasing pattern length, the runtime seems to increase faster at first and then slow down, this might be due to bigger patterns having less matches as both reads and patterns were generated randomly.
+
 With varying string length
 ![](figs/string.png)
+
+With increasing string length, the runtime seems to increase linearly(?), although testing with larger strings would help verify this.
+
