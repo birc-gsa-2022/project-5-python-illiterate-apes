@@ -104,9 +104,13 @@ Once you have implemented the `readmap` program (and tested it to the best of yo
 
 ## Algorithm
 
-*Which algorithm did you use for read mapping?*
+Since the object of this project is to do approximate matching and not exact matching, the solution proposed has necessarily to be different. This algorithm explores the tree of different paths to solution by applying the basic 3 operations: insertion, deletion and substitution, where each operation cost 1 units of edits to make. If the character from the genome and pattern matches the cost is 0. The recursion stops when there has been more edits than the defined limit or when we have found a solution. At each iteration, we apply FM-indexing over the genome using the reversed pattern.
+
+Moreover, and in order to prune the tree, a D-table has been introduced, which calculates an optimistic function of minimum cost necessary to find a solution from each character (from right to left). If at any point there are less edits available that the number indicated by the D-table, we can discard that branch of possibilities, since it is not possible to have a solution there.
 
 ## Insights you may have had while implementing the algorithm
+
+While implementing the algorithm we have understood how conceptually each of the basic operations work at the implementation level, and we have been able to deepen our knowledge onto FM-indexing while studying special cases in the debugging stage.
 
 ## Problems encountered if any
 
